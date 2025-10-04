@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RESEARCH-WEB | サイト詳細解析</title>
+    <meta name="description" content="URLを入力してサイトの仕組み・広告・技術などをAIで解析" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔎</text></svg>">
+    <style>
+      :root {
+        --bg: #0b1020;
+        --card: #121a2f;
+        --accent: #4f8cff;
+        --accent-2: #7cc4ff;
+        --text: #e6ecff;
+        --muted: #aab7d6;
+        --success: #2ecc71;
+        --warning: #f39c12;
+        --danger: #e74c3c;
+        --border: #223056;
+        --shadow: 0 10px 30px rgba(0,0,0,0.35);
+        --radius: 14px;
+        --radius-sm: 10px;
+        --maxw: 1100px;
+      }
+      * { box-sizing: border-box }
+      html, body { background: var(--bg); color: var(--text); margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; -webkit-font-smoothing: antialiased; }
+      a { color: var(--accent); text-decoration: none }
+      .wrap { max-width: var(--maxw); margin: 0 auto; padding: 24px }
+      header {
+        position: sticky; top: 0; z-index: 10;
+        backdrop-filter: saturate(1.2) blur(8px);
+        background: linear-gradient(180deg, rgba(11,16,32,0.9), rgba(11,16,32,0.6));
+        border-bottom: 1px solid var(--border);
+      }
+      .nav {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 24px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: 0.2px }
+      .logo {
+        width: 42px; height: 42px; border-radius: 10px;
+        background: radial-gradient(120% 120% at 10% 10%, var(--accent) 0%, var(--accent-2) 55%, transparent 56%), #0a1330;
+        box-shadow: inset 0 0 0 1px var(--border), var(--shadow);
+      }
+      .hero {
+        display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; align-items: center;
+        padding: 32px 24px 14px;
+      }
+      .card {
+        background: linear-gradient(180deg, rgba(18,26,47,0.8), rgba(18,26,47,0.6));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .card.pad { padding: 22px }
+      .title { font-size: 32px; margin: 8px 0 6px }
+      .subtitle { color: var(--muted); margin: 0 0 18px }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px }
+      .input {
+        display: flex; gap: 10px; background: #0e1730; border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+      }
+      .input input {
+        flex: 1; background: transparent; color: var(--text); border: none; outline: none; font-size: 16px; padding: 12px;
+      }
+      .btn {
+        background: linear-gradient(180deg, var(--accent), #3867ff);
+        color: white; border: none; border-radius: 12px; padding: 12px 18px; font-weight: 600; cursor: pointer;
+        transition: transform 0.06s ease, filter 0.2s ease;
+      }
+      .btn:active { transform: translateY(1px) }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 8px }
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px }
+      .feat { padding: 16px; border-radius: var(--radius-sm); background: #0d1530; border: 1px solid var(--border); }
+      .label { font-size: 12px; color: var(--muted) }
+
+      .results { margin-top: 28px; display: none }
+      .section { margin-top: 18px; }
+      .section h3 { margin: 0 0 8px; font-size: 20px }
+      .pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 8px 12px; margin: 6px 8px 6px 0;
+        border-radius: 999px; background: #0f1a36; border: 1px solid var(--border); color: var(--text);
+      }
+      .kvs { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+      .kv { display: contents; }
+      .kv label { color: var(--muted) }
+      .kv div { background: #0e1833; border: 1px solid var(--border); border-radius: 10px; padding: 10px }
+      .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 13px; color: #d7e3ff; background: #0b1430; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow: auto;
+      }
+      .status {
+        display: inline-block; padding: 6px 10px; border-radius: 10px; font-weight: 600;
+      }
+      .ok { background: rgba(46,204,113,0.12); color: var(--success); border: 1px solid rgba(46,204,113,0.35) }
+      .warn { background: rgba(243,156,18,0.12); color: var(--warning); border: 1px solid rgba(243,156,18,0.35) }
+      .bad { background: rgba(231,76,60,0.12); color: var(--danger); border: 1px solid rgba(231,76,60,0.35) }
+      .skeleton {
+        background: linear-gradient(90deg, #0d1530 25%, #121a2f 37%, #0d1530 63%);
+        background-size: 400% 100%;
+        animation: shimmer 1.2s infinite;
+        border-radius: 10px;
+      }
+      @keyframes shimmer { 0% { background-position: 100% 0 } 100% { background-position: -100% 0 } }
+      footer { color: var(--muted); text-align: center; padding: 24px }
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; }
+        .features { grid-template-columns: 1fr 1fr; }
+        .cards { grid-template-columns: 1fr; }
+        .kvs { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="nav wrap">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <div>RESEARCH-WEB</div>
+            <div class="label">AIサイト解析</div>
+          </div>
+        </div>
+        <div class="label">SimilarWeb風のUIで詳細を表示</div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="card pad">
+          <h1 class="title">URLを入力して、サイトの仕組み・広告・技術を丸ごと解析</h1>
+          <p class="subtitle">GroqのAIでHTMLを深掘りして、フレームワーク、広告の有無、SEO、パフォーマンス課題まで把握します。</p>
+
+          <form id="analyze-form" class="input" autocomplete="on">
+            <input id="url-input" name="url" type="url" inputmode="url" placeholder="例: https://example.com" required />
+            <button class="btn" type="submit">解析する</button>
+          </form>
+          <div class="hint">社内・ローカルホストなどの内部URLは対象外です。</div>
+
+          <div class="features" style="margin-top: 18px">
+            <div class="feat"><div class="label">技術スタック</div><div>フレームワーク・CMS・CDN・解析タグ</div></div>
+            <div class="feat"><div class="label">広告と収益</div><div>広告ネットワーク・モネタイズ・サブスク</div></div>
+            <div class="feat"><div class="label">SEO・性能</div><div>メタ・構造化・画像最適化・スクリプト数</div></div>
+          </div>
+        </div>
+
+        <div class="card pad">
+          <div class="label">解析の流れ</div>
+          <ol style="margin: 8px 0 0 18px; padding: 0">
+            <li>HTMLを安全に取得</li>
+            <li>Groq AIに構造化JSONで質問</li>
+            <li>JSONを可視化してわかりやすく表示</li>
+          </ol>
+          <div style="margin-top: 12px" class="label">速度最適化: キャッシュ・圧縮・非同期レンダリング</div>
+        </div>
+      </section>
+
+      <section id="results" class="results">
+        <div class="card pad">
+          <div id="summary-block" class="section">
+            <h3>概要</h3>
+            <div id="site-info" class="kvs">
+              <!-- dynamic -->
+            </div>
+            <p id="site-summary" style="margin-top: 12px"></p>
+          </div>
+
+          <div class="section">
+            <h3>技術スタック</h3>
+            <div id="stack-pills"></div>
+            <div class="cards" style="margin-top: 10px">
+              <div class="card pad">
+                <div class="label">ホスティング / CDN / ランタイム</div>
+                <div id="infra-kvs" class="kvs" style="margin-top: 8px"></div>
+              </div>
+              <div class="card pad">
+                <div class="label">解析・タグ管理</div>
+                <div id="analytics-pills" style="margin-top: 8px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>SEO</h3>
+            <div id="seo-kvs" class="kvs"></div>
+            <div id="schema-pills" style="margin-top: 8px"></div>
+          </div>
+
+          <div class="section">
+            <h3>パフォーマンス</h3>
+            <div class="cards">
+              <div class="card pad">
+                <div class="label">指標</div>
+                <div id="perf-kvs" class="kvs" style="margin-top: 8px"></div>
+              </div>
+              <div class="card pad">
+                <div class="label">外部依存</div>
+                <div id="third-pills" style="margin-top: 8px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>広告・収益</h3>
+            <div class="cards">
+              <div class="card pad">
+                <div class="label">広告</div>
+                <div id="ads-status" style="margin-top: 8px"></div>
+                <div id="ads-pills" style="margin-top: 8px"></div>
+              </div>
+              <div class="card pad">
+                <div class="label">モネタイズ</div>
+                <div id="monetize-pills" style="margin-top: 8px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>プライバシー・セキュリティ</h3>
+            <div id="privacy-kvs" class="kvs"></div>
+          </div>
+
+          <div class="section">
+            <h3>ユーザー・競合</h3>
+            <div class="cards">
+              <div class="card pad">
+                <div class="label">対象ユーザー</div>
+                <div id="audience-pills" style="margin-top: 8px"></div>
+              </div>
+              <div class="card pad">
+                <div class="label">競合候補</div>
+                <div id="competitor-pills" style="margin-top: 8px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>トラフィック推定</h3>
+            <div id="traffic-kvs" class="kvs"></div>
+          </div>
+
+          <div class="section">
+            <h3>コンタクト情報</h3>
+            <div id="contact-kvs" class="kvs"></div>
+          </div>
+
+          <div class="section">
+            <h3>推奨事項</h3>
+            <ul id="reco-list" style="margin: 0 0 8px 18px"></ul>
+          </div>
+
+          <div class="section">
+            <h3>JSONデータ</h3>
+            <pre id="json-raw" class="mono"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">© RESEARCH-WEB — Groq AIによるサイト解析</div>
+    </footer>
+
+    <script>
+      const form = document.getElementById('analyze-form');
+      const input = document.getElementById('url-input');
+      const results = document.getElementById('results');
+
+      const siteInfo = document.getElementById('site-info');
+      const siteSummary = document.getElementById('site-summary');
+      const stackPills = document.getElementById('stack-pills');
+      const infraKvs = document.getElementById('infra-kvs');
+      const analyticsPills = document.getElementById('analytics-pills');
+      const seoKvs = document.getElementById('seo-kvs');
+      const schemaPills = document.getElementById('schema-pills');
+      const perfKvs = document.getElementById('perf-kvs');
+      const thirdPills = document.getElementById('third-pills');
+      const adsStatus = document.getElementById('ads-status');
+      const adsPills = document.getElementById('ads-pills');
+      const monetizePills = document.getElementById('monetize-pills');
+      const privacyKvs = document.getElementById('privacy-kvs');
+      const audiencePills = document.getElementById('audience-pills');
+      const competitorPills = document.getElementById('competitor-pills');
+      const trafficKvs = document.getElementById('traffic-kvs');
+      const contactKvs = document.getElementById('contact-kvs');
+      const recoList = document.getElementById('reco-list');
+      const jsonRaw = document.getElementById('json-raw');
+
+      function pill(text) {
+        const span = document.createElement('span');
+        span.className = 'pill';
+        span.textContent = text;
+        return span;
+      }
+      function kv(labelText, valueText) {
+        const wrap = document.createElement('div');
+        wrap.className = 'kv';
+        const label = document.createElement('label');
+        label.textContent = labelText;
+        const val = document.createElement('div');
+        val.textContent = valueText ?? '';
+        wrap.appendChild(label);
+        wrap.appendChild(val);
+        return wrap;
+      }
+      function statusBadge(type, text) {
+        const div = document.createElement('div');
+        div.className = `status ${type}`;
+        div.textContent = text;
+        return div;
+      }
+      function clear(node) { while (node.firstChild) node.removeChild(node.firstChild) }
+
+      async function analyze(url) {
+        const endpoint = '/analyze';
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 20000);
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+          signal: controller.signal
+        });
+        clearTimeout(id);
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          throw new Error(error.error || '解析に失敗しました');
+        }
+        const json = await res.json();
+        return json?.data?.site ? json.data.site : json.data;
+      }
+
+      function render(site) {
+        // Summary
+        clear(siteInfo);
+        siteInfo.appendChild(kv('URL', site.url || ''));
+        siteInfo.appendChild(kv('タイトル', site.title || ''));
+        siteInfo.appendChild(kv('説明', site.description || ''));
+        siteInfo.appendChild(kv('言語', site.language || ''));
+
+        siteSummary.textContent = site.summary || '';
+
+        // Stack
+        clear(stackPills);
+        (site.frameworks || []).forEach(x => stackPills.appendChild(pill(x)));
+        (site.libraries || []).forEach(x => stackPills.appendChild(pill(x)));
+        if (site.cms) stackPills.appendChild(pill(`CMS: ${site.cms}`));
+
+        // Infra
+        clear(infraKvs);
+        infraKvs.appendChild(kv('ランタイム', site.runtime || ''));
+        infraKvs.appendChild(kv('ホスティング', site.hosting || ''));
+        infraKvs.appendChild(kv('CDN', site.cdn || ''));
+
+        // Analytics / Tag managers
+        clear(analyticsPills);
+        (site.analytics || []).forEach(x => analyticsPills.appendChild(pill(x)));
+        (site.tag_managers || []).forEach(x => analyticsPills.appendChild(pill(`TM: ${x}`)));
+
+        // SEO
+        clear(seoKvs);
+        const seo = site.seo || {};
+        seoKvs.appendChild(kv('Meta title', seo.meta_title || ''));
+        seoKvs.appendChild(kv('Meta description', seo.meta_description || ''));
+        seoKvs.appendChild(kv('H1', seo.h1 || ''));
+        seoKvs.appendChild(kv('Canonical', seo.canonical || ''));
+        clear(schemaPills);
+        (seo.schema_org || []).forEach(x => schemaPills.appendChild(pill(x)));
+
+        // Performance
+        clear(perfKvs);
+        const perf = site.performance || {};
+        perfKvs.appendChild(kv('ページ重量(KB)', String(perf.page_weight_kb ?? '')));
+        perfKvs.appendChild(kv('画像最適化', perf.image_optimization || ''));
+        perfKvs.appendChild(kv('Lazy Loading', String(perf.lazy_loading ?? '')));
+        perfKvs.appendChild(kv('スクリプト数', String(perf.script_count ?? '')));
+        clear(thirdPills);
+        (perf.notable_third_parties || []).forEach(x => thirdPills.appendChild(pill(x)));
+
+        // Ads & Monetization
+        clear(adsStatus);
+        const ads = site.ads || {};
+        adsStatus.appendChild(
+          statusBadge(ads.has_ads ? 'ok' : 'warn', ads.has_ads ? '広告あり' : '広告なし')
+        );
+        clear(adsPills);
+        (ads.ad_networks || []).forEach(x => adsPills.appendChild(pill(x)));
+        (ads.placements || []).forEach(x => adsPills.appendChild(pill(`配置: ${x}`)));
+
+        clear(monetizePills);
+        const monet = site.monetization || {};
+        (monet.models || []).forEach(x => monetizePills.appendChild(pill(x)));
+        monetizePills.appendChild(pill(`サブスク: ${monet.subscriptions ? 'はい' : 'いいえ'}`));
+        monetizePills.appendChild(pill(`アフィリエイト: ${monet.affiliate ? 'はい' : 'いいえ'}`));
+        monetizePills.appendChild(pill(`EC: ${monet.ecommerce ? 'はい' : 'いいえ'}`));
+
+        // Privacy & Security
+        clear(privacyKvs);
+        const ps = site.privacy_security || {};
+        privacyKvs.appendChild(kv('Cookieバナー', String(ps.cookie_banner ?? '')));
+        privacyKvs.appendChild(kv('GDPR/CCPA', (ps.gdpr_ccpa_mentions || []).join(', ')));
+        privacyKvs.appendChild(kv('セキュリティヘッダ', (ps.security_headers || []).join(', ')));
+
+        // Audience & competitors
+        clear(audiencePills);
+        (site.audience?.target_segments || []).forEach(x => audiencePills.appendChild(pill(x)));
+        (site.audience?.regions || []).forEach(x => audiencePills.appendChild(pill(`地域: ${x}`)));
+
+        clear(competitorPills);
+        (site.competitors || []).forEach(x => competitorPills.appendChild(pill(x)));
+
+        // Traffic
+        clear(trafficKvs);
+        trafficKvs.appendChild(kv('信頼度', site.traffic_estimate?.confidence || ''));
+        trafficKvs.appendChild(kv('月間訪問レンジ', site.traffic_estimate?.monthly_visits_range || ''));
+
+        // Contact
+        clear(contactKvs);
+        const c = site.contact || {};
+        contactKvs.appendChild(kv('メール', (c.emails || []).join(', ')));
+        contactKvs.appendChild(kv('電話', (c.phones || []).join(', ')));
+        contactKvs.appendChild(kv('SNS', (c.socials || []).join(', ')));
+
+        // Recommendations
+        clear(recoList);
+        (site.recommendations || []).forEach(x => {
+          const li = document.createElement('li');
+          li.textContent = x;
+          recoList.appendChild(li);
+        });
+
+        // Raw JSON
+        jsonRaw.textContent = JSON.stringify(site, null, 2);
+
+        results.style.display = 'block';
+        // Smooth scroll
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function showSkeleton() {
+        results.style.display = 'block';
+        siteInfo.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        siteSummary.innerHTML = '';
+        stackPills.innerHTML = '<div class="skeleton" style="height: 28px; width: 60%"></div>';
+        infraKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        analyticsPills.innerHTML = '<div class="skeleton" style="height: 28px"></div>';
+        seoKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        schemaPills.innerHTML = '<div class="skeleton" style="height: 28px"></div>';
+        perfKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        thirdPills.innerHTML = '<div class="skeleton" style="height: 28px"></div>';
+        adsStatus.innerHTML = '<div class="skeleton" style="height: 28px; width: 120px"></div>';
+        adsPills.innerHTML = '';
+        monetizePills.innerHTML = '';
+        privacyKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        audiencePills.innerHTML = '';
+        competitorPills.innerHTML = '';
+        trafficKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        contactKvs.innerHTML = '<div class="skeleton" style="height: 80px"></div>';
+        recoList.innerHTML = '';
+        jsonRaw.textContent = '';
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = input.value.trim();
+        if (!url) return;
+        showSkeleton();
+        try {
+          const site = await analyze(url);
+          render(site);
+        } catch (err) {
+          jsonRaw.textContent = '';
+          results.style.display = 'block';
+          siteInfo.innerHTML = '';
+          siteSummary.textContent = '';
+          const errorBox = document.createElement('div');
+          errorBox.className = 'status bad';
+          errorBox.textContent = err.message || '解析でエラーが発生しました';
+          siteInfo.appendChild(errorBox);
+          console.error(err);
+        }
+      });
+    </script>
+  </body>
+</html>
